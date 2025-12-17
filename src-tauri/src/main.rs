@@ -7,13 +7,14 @@ mod config;
 
 use config::{ShortcutType, expand_env_vars, Shortcut, load_config, save_config};
 use tauri::{
-    menu::{Menu, MenuItem},
     tray::{TrayIconBuilder, TrayIconEvent, MouseButtonState, MouseButton},
     Manager, Emitter, PhysicalPosition,
 };
 use std::process::Command;
 use std::os::windows::process::CommandExt;
 use std::io::Write;
+use winreg::enums::*;
+use winreg::RegKey;
 
 // Windows constants for CreateProcess
 const CREATE_NO_WINDOW: u32 = 0x08000000;
@@ -356,52 +357,72 @@ fn hide_window(window: tauri::Window) {
     let _ = window.hide();
 }
 
+#[tauri::command]
+fn open_settings(app: tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("settings") {
+        let _ = window.show();
+        let _ = window.set_focus();
+    } else {
+        let _ = tauri::WebviewWindowBuilder::new(
+            &app,
+            "settings",
+            tauri::WebviewUrl::App("settings.html".into())
+        )
+        .title("Settings - Shortcuts")
+        .inner_size(700.0, 600.0)
+        .resizable(true)
+        .center()
+        .build();
+    }
+}
+
+#[tauri::command]
+fn exit_app(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
+const AUTOSTART_KEY: &str = "Shortcuts";
+const RUN_KEY_PATH: &str = r"Software\Microsoft\Windows\CurrentVersion\Run";
+
+#[tauri::command]
+fn get_autostart() -> bool {
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    if let Ok(run_key) = hkcu.open_subkey(RUN_KEY_PATH) {
+        run_key.get_value::<String, _>(AUTOSTART_KEY).is_ok()
+    } else {
+        false
+    }
+}
+
+#[tauri::command]
+fn set_autostart(enabled: bool) -> Result<(), String> {
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let run_key = hkcu.open_subkey_with_flags(RUN_KEY_PATH, KEY_WRITE)
+        .map_err(|e| format!("Failed to open registry key: {}", e))?;
+
+    if enabled {
+        // Get the current executable path
+        let exe_path = std::env::current_exe()
+            .map_err(|e| format!("Failed to get executable path: {}", e))?;
+        let exe_str = exe_path.to_string_lossy().to_string();
+
+        run_key.set_value(AUTOSTART_KEY, &exe_str)
+            .map_err(|e| format!("Failed to set registry value: {}", e))?;
+    } else {
+        // Remove the registry value (ignore error if it doesn't exist)
+        let _ = run_key.delete_value(AUTOSTART_KEY);
+    }
+
+    Ok(())
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            // Setup Tray
-            let quit_i = MenuItem::with_id(app, "quit", "Exit", true, None::<&str>).unwrap();
-            let reload_i = MenuItem::with_id(app, "reload", "Reload Config", true, None::<&str>).unwrap();
-            let settings_i = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>).unwrap();
-
-            let menu = Menu::with_items(app, &[&settings_i, &reload_i, &quit_i]).unwrap();
-
+            // Setup Tray (left-click only, no right-click menu)
             let _tray = TrayIconBuilder::new()
-                .menu(&menu)
                 .icon(app.default_window_icon().unwrap().clone())
-                .show_menu_on_left_click(false)
-                .on_menu_event(|app, event| {
-                    match event.id.as_ref() {
-                        "quit" => {
-                            app.exit(0);
-                        }
-                        "reload" => {
-                             // Reload logic: emit event to frontend to refresh
-                             app.emit("reload-shortcuts", ()).unwrap();
-                        }
-                        "settings" => {
-                            // Open settings window - create if destroyed
-                            if let Some(window) = app.get_webview_window("settings") {
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                            } else {
-                                // Window was closed, recreate it
-                                let _ = tauri::WebviewWindowBuilder::new(
-                                    app,
-                                    "settings",
-                                    tauri::WebviewUrl::App("settings.html".into())
-                                )
-                                .title("Settings - Shortcuts")
-                                .inner_size(700.0, 600.0)
-                                .resizable(true)
-                                .center()
-                                .build();
-                            }
-                        }
-                        _ => {}
-                    }
-                })
                 .on_tray_icon_event(|tray, event| {
                     if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, rect, .. } = event {
                          let app = tray.app_handle();
@@ -433,7 +454,7 @@ fn main() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_shortcuts, add_shortcut, update_shortcut, delete_shortcut, reorder_shortcut, launch_shortcut, hide_window])
+        .invoke_handler(tauri::generate_handler![get_shortcuts, add_shortcut, update_shortcut, delete_shortcut, reorder_shortcut, launch_shortcut, hide_window, open_settings, exit_app, get_autostart, set_autostart])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

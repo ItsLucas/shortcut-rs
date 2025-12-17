@@ -9,15 +9,46 @@
 <body>
     <div id="app">
         <header class="header">
-            <h1>Manage Shortcuts</h1>
-            <button id="add-btn" class="btn btn-primary">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                Add Shortcut
-            </button>
+            <h1>Settings</h1>
         </header>
 
-        <div class="content">
-            <ul id="shortcut-list" class="shortcut-list"></ul>
+        <!-- Tabs -->
+        <nav class="tabs">
+            <button class="tab active" data-tab="shortcuts">Shortcuts</button>
+            <button class="tab" data-tab="system">System</button>
+        </nav>
+
+        <!-- Shortcuts Tab -->
+        <div id="tab-shortcuts" class="tab-content active">
+            <div class="tab-header">
+                <h2>Manage Shortcuts</h2>
+                <button id="add-btn" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    Add Shortcut
+                </button>
+            </div>
+            <div class="content">
+                <ul id="shortcut-list" class="shortcut-list"></ul>
+            </div>
+        </div>
+
+        <!-- System Tab -->
+        <div id="tab-system" class="tab-content">
+            <div class="content">
+                <div class="settings-section">
+                    <h3>Startup</h3>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <span class="setting-label">Start with Windows</span>
+                            <span class="setting-desc">Automatically launch Shortcuts when you sign in</span>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" id="autostart-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Edit Modal -->

@@ -69,6 +69,20 @@ whenReady(() => {
     const { invoke } = window.__TAURI__.core;
     const { listen } = window.__TAURI__.event;
 
+    // Header button handlers
+    document.getElementById('btn-settings').onclick = () => {
+        invoke('open_settings');
+        invoke('hide_window');
+    };
+
+    document.getElementById('btn-reload').onclick = () => {
+        loadShortcuts();
+    };
+
+    document.getElementById('btn-exit').onclick = () => {
+        invoke('exit_app');
+    };
+
     async function loadShortcuts() {
         const list = document.getElementById('shortcut-list');
         if (!list) {
@@ -85,7 +99,7 @@ whenReady(() => {
                 emptyDiv.className = 'empty-state';
                 emptyDiv.innerHTML = `
                     ${icons.empty}
-                    <p>No shortcuts configured.<br>Right-click tray icon to open config.</p>
+                    <p>No shortcuts configured.<br>Click the Settings button above.</p>
                 `;
                 list.appendChild(emptyDiv);
                 return;

@@ -40,6 +40,47 @@ const typeLabels = {
 whenReady(() => {
     const { invoke } = window.__TAURI__.core;
 
+    // Tab switching
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetTab = tab.dataset.tab;
+
+            tabs.forEach(t => t.classList.remove('active'));
+            tabContents.forEach(c => c.classList.remove('active'));
+
+            tab.classList.add('active');
+            document.getElementById(`tab-${targetTab}`).classList.add('active');
+        });
+    });
+
+    // Auto-start toggle
+    const autostartToggle = document.getElementById('autostart-toggle');
+
+    async function loadAutostartState() {
+        try {
+            const enabled = await invoke('get_autostart');
+            autostartToggle.checked = enabled;
+        } catch (e) {
+            console.error('Failed to get autostart state', e);
+        }
+    }
+
+    autostartToggle.addEventListener('change', async () => {
+        try {
+            await invoke('set_autostart', { enabled: autostartToggle.checked });
+        } catch (e) {
+            console.error('Failed to set autostart', e);
+            // Revert toggle on error
+            autostartToggle.checked = !autostartToggle.checked;
+        }
+    });
+
+    // Load autostart state on init
+    loadAutostartState();
+
     let shortcuts = [];
     let editingIndex = -1;
 
