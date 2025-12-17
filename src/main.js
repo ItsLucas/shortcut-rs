@@ -97,8 +97,8 @@ whenReady(() => {
                 li.tabIndex = 0;
                 li.style.animationDelay = `${index * 0.02}s`;
 
-                // Get type (handle both snake_case from Rust and the value)
-                const shortcutType = item.shortcut_type || item.type || 'app';
+                // Get type from Rust serialization
+                const shortcutType = item.type || 'app';
 
                 // Icon with type-specific gradient
                 const iconDiv = document.createElement('div');

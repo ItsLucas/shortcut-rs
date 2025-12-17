@@ -95,7 +95,7 @@ whenReady(() => {
             li.className = 'shortcut-item';
             li.dataset.index = index;
 
-            const shortcutType = item.shortcut_type || item.type || 'app';
+            const shortcutType = item.type || 'app';
 
             li.innerHTML = `
                 <div class="drag-handle">${icons.drag}</div>
@@ -362,7 +362,7 @@ whenReady(() => {
 
         const shortcut = {
             name: formData.get('name'),
-            shortcut_type: type,
+            type: type,
             command: formData.get('command') || '',
             script: type === 'shell' ? formData.get('script') : null,
             args: formData.get('args') || null,

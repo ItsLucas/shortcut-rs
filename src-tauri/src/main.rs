@@ -381,10 +381,22 @@ fn main() {
                              app.emit("reload-shortcuts", ()).unwrap();
                         }
                         "settings" => {
-                            // Open settings window
+                            // Open settings window - create if destroyed
                             if let Some(window) = app.get_webview_window("settings") {
                                 let _ = window.show();
                                 let _ = window.set_focus();
+                            } else {
+                                // Window was closed, recreate it
+                                let _ = tauri::WebviewWindowBuilder::new(
+                                    app,
+                                    "settings",
+                                    tauri::WebviewUrl::App("settings.html".into())
+                                )
+                                .title("Settings - Shortcuts")
+                                .inner_size(700.0, 600.0)
+                                .resizable(true)
+                                .center()
+                                .build();
                             }
                         }
                         _ => {}
