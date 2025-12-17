@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Shortcuts</title>
+    <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+    <div id="app">
+        <header class="header">
+            <h1>Manage Shortcuts</h1>
+            <button id="add-btn" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Add Shortcut
+            </button>
+        </header>
+
+        <div class="content">
+            <ul id="shortcut-list" class="shortcut-list"></ul>
+        </div>
+
+        <!-- Edit Modal -->
+        <div id="modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modal-title">Add Shortcut</h2>
+                    <button id="modal-close" class="btn-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <form id="shortcut-form">
+                    <div class="form-group">
+                        <label for="name">Name</label>
+                        <input type="text" id="name" name="name" required placeholder="My Shortcut">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="type">Type</label>
+                        <select id="type" name="type">
+                            <option value="app">Application</option>
+                            <option value="url">URL / Website</option>
+                            <option value="file">File</option>
+                            <option value="folder">Folder</option>
+                            <option value="script">Script File (.bat, .ps1)</option>
+                            <option value="shell">Shell Command</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="command-group">
+                        <label for="command" id="command-label">Executable Path</label>
+                        <div class="input-with-button">
+                            <input type="text" id="command" name="command" placeholder="C:\Program Files\...">
+                            <button type="button" id="browse-btn" class="btn btn-secondary">Browse</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group hidden" id="script-group">
+                        <label for="script">Script Content</label>
+                        <textarea id="script" name="script" rows="6" placeholder="echo Hello World&#10;pause"></textarea>
+                    </div>
+
+                    <div class="form-group" id="args-group">
+                        <label for="args">Arguments (optional)</label>
+                        <input type="text" id="args" name="args" placeholder="--flag value">
+                    </div>
+
+                    <div class="form-group" id="working-dir-group">
+                        <label for="working_dir">Working Directory (optional)</label>
+                        <div class="input-with-button">
+                            <input type="text" id="working_dir" name="working_dir" placeholder="C:\Users\...">
+                            <button type="button" id="browse-dir-btn" class="btn btn-secondary">Browse</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Description (optional)</label>
+                        <input type="text" id="description" name="description" placeholder="What this shortcut does">
+                    </div>
+
+                    <div class="form-group" id="shell-group">
+                        <label for="shell">Shell</label>
+                        <select id="shell" name="shell">
+                            <option value="cmd">CMD</option>
+                            <option value="powershell">PowerShell</option>
+                            <option value="pwsh">PowerShell Core (pwsh)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group checkbox-group" id="hidden-group">
+                            <label>
+                                <input type="checkbox" id="hidden" name="hidden">
+                                <span>Run Hidden (no console window)</span>
+                            </label>
+                        </div>
+
+                        <div class="form-group checkbox-group">
+                            <label>
+                                <input type="checkbox" id="admin" name="admin">
+                                <span>Run as Administrator</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" id="delete-btn" class="btn btn-danger hidden">Delete</button>
+                        <div class="footer-right">
+                            <button type="button" id="cancel-btn" class="btn btn-secondary">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="settings.js"></script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+# Rust
+/target
+src-tauri/target
+
+# Dependencies
+node_modules
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tauri
+src-tauri/gen
+
+# Claude Code local settings
+.claude/settings.local.json
