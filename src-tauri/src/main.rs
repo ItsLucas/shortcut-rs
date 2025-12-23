@@ -15,6 +15,16 @@ use std::os::windows::process::CommandExt;
 use std::io::Write;
 use winreg::enums::*;
 use winreg::RegKey;
+use std::sync::Mutex;
+
+struct TrayState {
+    pub position: (i32, i32),
+    pub size: (i32, i32),
+}
+
+struct AppState {
+    pub tray: Mutex<Option<TrayState>>,
+}
 
 // Windows constants for CreateProcess
 const CREATE_NO_WINDOW: u32 = 0x08000000;
@@ -363,7 +373,8 @@ fn open_settings(app: tauri::AppHandle) {
         let _ = window.show();
         let _ = window.set_focus();
     } else {
-        let _ = tauri::WebviewWindowBuilder::new(
+        println!("Creating new settings window");
+        let builder = tauri::WebviewWindowBuilder::new(
             &app,
             "settings",
             tauri::WebviewUrl::App("settings.html".into())
@@ -371,14 +382,34 @@ fn open_settings(app: tauri::AppHandle) {
         .title("Settings - Shortcuts")
         .inner_size(700.0, 600.0)
         .resizable(true)
-        .center()
-        .build();
+        .center();
+
+        match builder.build() {
+            Ok(window) => {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+            Err(e) => println!("Failed to build settings window: {}", e),
+        }
     }
 }
 
 #[tauri::command]
 fn exit_app(app: tauri::AppHandle) {
     app.exit(0);
+}
+
+#[tauri::command]
+fn resize_main_window(width: f64, height: f64, window: tauri::Window, state: tauri::State<AppState>) {
+    let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize { width, height }));
+    
+    // Re-position above tray if we have tray info
+    let tray_info = state.tray.lock().unwrap();
+    if let Some(tray) = &*tray_info {
+        let x = tray.position.0 - (width as i32 / 2) + (tray.size.0 / 2);
+        let y = tray.position.1 - height as i32;
+        let _ = window.set_position(PhysicalPosition::new(x, y));
+    }
 }
 
 const AUTOSTART_KEY: &str = "Shortcuts";
@@ -418,28 +449,42 @@ fn set_autostart(enabled: bool) -> Result<(), String> {
 
 fn main() {
     tauri::Builder::default()
+        .manage(AppState { tray: Mutex::new(None) })
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             // Setup Tray (left-click only, no right-click menu)
             let _tray = TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
-                .on_tray_icon_event(|tray, event| {
+                 .on_tray_icon_event(|tray, event| {
                     if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, rect, .. } = event {
                          let app = tray.app_handle();
+                         let state = app.state::<AppState>();
+                         
+                         let (tray_x, tray_y) = match rect.position {
+                             tauri::Position::Physical(pos) => (pos.x, pos.y),
+                             tauri::Position::Logical(pos) => (pos.x as i32, pos.y as i32),
+                         };
+                         let tray_width = match rect.size {
+                             tauri::Size::Physical(size) => size.width as i32,
+                             tauri::Size::Logical(size) => size.width as i32,
+                         };
+                         let tray_height = match rect.size {
+                             tauri::Size::Physical(size) => size.height as i32,
+                             tauri::Size::Logical(size) => size.height as i32,
+                         };
+
+                         // Store tray info
+                         {
+                             let mut tray_info = state.tray.lock().unwrap();
+                             *tray_info = Some(TrayState {
+                                 position: (tray_x, tray_y),
+                                 size: (tray_width, tray_height),
+                             });
+                         }
+
                          if let Some(window) = app.get_webview_window("main") {
                              // Get window size
                              let win_size = window.outer_size().unwrap_or(tauri::PhysicalSize { width: 300, height: 400 });
-
-                             // Position window above the tray icon
-                             // Extract physical position from the rect
-                             let (tray_x, tray_y) = match rect.position {
-                                 tauri::Position::Physical(pos) => (pos.x, pos.y),
-                                 tauri::Position::Logical(pos) => (pos.x as i32, pos.y as i32),
-                             };
-                             let tray_width = match rect.size {
-                                 tauri::Size::Physical(size) => size.width as i32,
-                                 tauri::Size::Logical(size) => size.width as i32,
-                             };
 
                              let x = tray_x - (win_size.width as i32 / 2) + (tray_width / 2);
                              let y = tray_y - win_size.height as i32;
@@ -454,7 +499,17 @@ fn main() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_shortcuts, add_shortcut, update_shortcut, delete_shortcut, reorder_shortcut, launch_shortcut, hide_window, open_settings, exit_app, get_autostart, set_autostart])
+        .on_window_event(|window, event| {
+            if window.label() == "settings" {
+                if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                    // Prevent the window from closing (destroying)
+                    api.prevent_close();
+                    // Just hide it instead
+                    let _ = window.hide();
+                }
+            }
+        })
+        .invoke_handler(tauri::generate_handler![get_shortcuts, add_shortcut, update_shortcut, delete_shortcut, reorder_shortcut, launch_shortcut, hide_window, open_settings, exit_app, get_autostart, set_autostart, resize_main_window])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

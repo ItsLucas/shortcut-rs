@@ -65,6 +65,14 @@ function getColorsForType(type) {
     return iconColors[t] || iconColors.app;
 }
 
+// Window scaling constants
+const ITEM_HEIGHT = 62;
+const ITEM_WIDTH = 260;
+const MAX_ROWS = 6;
+const HEADER_HEIGHT = 56;
+const LIST_PADDING = 12;
+const GRID_GAP = 8;
+
 whenReady(() => {
     const { invoke } = window.__TAURI__.core;
     const { listen } = window.__TAURI__.event;
@@ -203,6 +211,9 @@ whenReady(() => {
 
                 list.appendChild(li);
             });
+
+            // Adaptive scaling
+            updateWindowSize(shortcuts.length);
         } catch (e) {
             console.error('Failed to load shortcuts', e);
             list.innerHTML = `
@@ -212,6 +223,27 @@ whenReady(() => {
                 </div>
             `;
         }
+    }
+
+    function updateWindowSize(count) {
+        if (count === 0) {
+            invoke('resize_main_window', { width: 300, height: 200 });
+            return;
+        }
+
+        const cols = Math.ceil(count / MAX_ROWS);
+        const rows = Math.ceil(count / cols); // Balance rows across columns
+
+        // Calculate dimensions
+        // Grid gap is applied between columns/rows
+        const width = (cols * ITEM_WIDTH) + ((cols - 1) * GRID_GAP) + (LIST_PADDING * 2);
+        const height = (rows * ITEM_HEIGHT) + ((rows - 1) * GRID_GAP) + (LIST_PADDING * 2) + HEADER_HEIGHT;
+
+        // Update CSS variable for grid
+        document.documentElement.style.setProperty('--grid-cols', cols);
+
+        // Call backend to resize
+        invoke('resize_main_window', { width: Math.round(width), height: Math.round(height) });
     }
 
     // Hide on blur
