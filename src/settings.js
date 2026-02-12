@@ -81,6 +81,48 @@ whenReady(() => {
     // Load autostart state on init
     loadAutostartState();
 
+    // Export/Import config
+    const exportBtn = document.getElementById('export-btn');
+    const importBtn = document.getElementById('import-btn');
+
+    exportBtn.addEventListener('click', async () => {
+        try {
+            const { save } = window.__TAURI__.dialog;
+            const path = await save({
+                defaultPath: 'shortcuts-config.json',
+                filters: [{ name: 'JSON', extensions: ['json'] }],
+            });
+            if (path) {
+                await invoke('export_config', { path });
+                alert('Config exported successfully.');
+            }
+        } catch (e) {
+            console.error('Failed to export config', e);
+            alert('Failed to export config: ' + e);
+        }
+    });
+
+    importBtn.addEventListener('click', async () => {
+        try {
+            const { open: openDialog } = window.__TAURI__.dialog;
+            const path = await openDialog({
+                multiple: false,
+                filters: [{ name: 'JSON', extensions: ['json'] }],
+            });
+            if (path) {
+                if (!confirm('This will replace all current shortcuts. Continue?')) {
+                    return;
+                }
+                await invoke('import_config', { path });
+                await loadShortcuts();
+                alert('Config imported successfully.');
+            }
+        } catch (e) {
+            console.error('Failed to import config', e);
+            alert('Failed to import config: ' + e);
+        }
+    });
+
     let shortcuts = [];
     let editingIndex = -1;
 

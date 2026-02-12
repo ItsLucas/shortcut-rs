@@ -5,7 +5,7 @@
 
 mod config;
 
-use config::{ShortcutType, expand_env_vars, Shortcut, load_config, save_config};
+use config::{ShortcutType, expand_env_vars, Shortcut, AppConfig, load_config, save_config, get_config_path};
 use tauri::{
     tray::{TrayIconBuilder, TrayIconEvent, MouseButtonState, MouseButton},
     Manager, Emitter, PhysicalPosition,
@@ -363,6 +363,25 @@ fn parse_args(arg_str: &str) -> Vec<String> {
 }
 
 #[tauri::command]
+fn export_config(path: String) -> Result<(), String> {
+    let src = get_config_path();
+    std::fs::copy(&src, &path)
+        .map_err(|e| format!("Failed to export config: {}", e))?;
+    Ok(())
+}
+
+#[tauri::command]
+fn import_config(path: String, app: tauri::AppHandle) -> Result<(), String> {
+    let content = std::fs::read_to_string(&path)
+        .map_err(|e| format!("Failed to read file: {}", e))?;
+    let config: AppConfig = serde_json::from_str(&content)
+        .map_err(|e| format!("Invalid config file: {}", e))?;
+    save_config(&config)?;
+    let _ = app.emit("reload-shortcuts", ());
+    Ok(())
+}
+
+#[tauri::command]
 fn hide_window(window: tauri::Window) {
     let _ = window.hide();
 }
@@ -509,7 +528,7 @@ fn main() {
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![get_shortcuts, add_shortcut, update_shortcut, delete_shortcut, reorder_shortcut, launch_shortcut, hide_window, open_settings, exit_app, get_autostart, set_autostart, resize_main_window])
+        .invoke_handler(tauri::generate_handler![get_shortcuts, add_shortcut, update_shortcut, delete_shortcut, reorder_shortcut, launch_shortcut, hide_window, open_settings, exit_app, get_autostart, set_autostart, resize_main_window, export_config, import_config])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
